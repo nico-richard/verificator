@@ -26,6 +26,21 @@ def test_python_error():
 
 
 def test_upload_validation():
-    client = create_app({"TESTING": True}).test_client()
+    client = create_app({"TESTING": True, "ACCESS_PASSWORD": "test"}).test_client()
+    with client.session_transaction() as current_session:
+        current_session["authenticated"] = True
     response = client.post("/corriger", data={"exercise": "s2-moyenne", "file": (BytesIO(b"x"), "notes.txt")}, content_type="multipart/form-data")
     assert "extension .py" in response.get_data(as_text=True)
+
+
+def test_login_required():
+    client = create_app({"TESTING": True, "ACCESS_PASSWORD": "secret"}).test_client()
+    assert client.get("/").status_code == 302
+    response = client.post("/connexion", data={"password": "secret"})
+    assert response.status_code == 302
+
+
+def test_network_restriction():
+    app = create_app({"TESTING": True, "ALLOWED_NETWORKS": "10.0.0.0/8"})
+    response = app.test_client().get("/", environ_base={"REMOTE_ADDR": "192.168.1.5"})
+    assert response.status_code == 403

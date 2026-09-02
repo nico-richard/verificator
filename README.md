@@ -29,3 +29,7 @@ Créer un module dans `verificator/exercises/`, y déclarer un objet `Exercise` 
 ## Limites et prochaines étapes
 
 Le prototype n'utilise ni compte ni base de données. Les fichiers sont temporaires et supprimés après traitement. Avant une mise en ligne publique, utiliser une sandbox Docker dédiée ou un service d'exécution isolé, appliquer des quotas et journaliser les exécutions sans conserver le code étudiant.
+
+### Protection par mot de passe
+
+Dans Render, définir `VERIFICATOR_PASSWORD` et `VERIFICATOR_SECRET_KEY`. Le mot de passe ne doit jamais être écrit dans le dépôt. Utiliser HTTPS ainsi qu'un mot de passe long et unique. Si le mot de passe est absent, l'application refuse l'accès avec une erreur 503.
