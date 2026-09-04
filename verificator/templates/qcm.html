@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>QCM de début de séance — Verificator</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<main>
+    <nav class="page-nav" aria-label="Navigation principale">
+        <a href="{{ url_for('index') }}">Correction Python</a>
+        <a href="{{ url_for('qcm') }}" aria-current="page">QCM</a>
+    </nav>
+    <h1>QCM de début de séance</h1>
+    <p class="intro">Renseignez votre nom et prénom, puis répondez aux {{ question_count }} questions présentées en cours. Une seule réponse est possible par question.</p>
+    {% for message in get_flashed_messages(category_filter=['qcm_success']) %}
+    <div class="alert pass" role="status">{{ message }}</div>
+    {% endfor %}
+    {% if error %}
+    <div class="alert error" role="alert">{{ error }}</div>
+    {% endif %}
+    <form method="post" action="{{ url_for('qcm') }}" class="qcm-form">
+        <label for="student-name">Nom et prénom
+            <input id="student-name" name="student_name" type="text" autocomplete="name"
+                   maxlength="120" value="{{ student_name }}" required>
+        </label>
+        <p class="intro">Toutes les questions sont obligatoires. Vérifiez vos choix avant l’envoi.</p>
+        {% for number in range(1, question_count + 1) %}
+        <fieldset class="qcm-question">
+            <legend>Question {{ number }}</legend>
+            <div class="qcm-choices">
+                {% for choice in choices %}
+                <label class="qcm-choice">
+                    <input type="radio" name="question_{{ number }}" value="{{ choice }}"
+                           {% if answers.get(number) == choice %}checked{% endif %} required>
+                    <span>{{ choice }}</span>
+                </label>
+                {% endfor %}
+            </div>
+        </fieldset>
+        {% endfor %}
+        <button type="submit">Envoyer mes réponses</button>
+    </form>
+</main>
+</body>
+</html>

@@ -1,16 +1,20 @@
 import hmac
 import os
-from flask import Flask, redirect, render_template, request, session, url_for
+import sqlite3
+from flask import Flask, flash, redirect, render_template, request, session, url_for
 
 from .correction.engine import CorrectionEngine
 from .exercises import EXERCISES, SESSIONS
+from .qcm import CHOICES, QUESTION_COUNT, save_submission
 
 
 def create_app(test_config=None):
     app = Flask(__name__)
     app.config.from_mapping(MAX_UPLOAD_BYTES=64 * 1024, EXECUTION_TIMEOUT=3,
                             ACCESS_PASSWORD=os.environ.get("VERIFICATOR_PASSWORD", ""),
-                            SECRET_KEY=os.environ.get("VERIFICATOR_SECRET_KEY", "change-me"))
+                            SECRET_KEY=os.environ.get("VERIFICATOR_SECRET_KEY", "change-me"),
+                            QCM_DATABASE=os.environ.get("VERIFICATOR_QCM_DATABASE")
+                            or os.path.join(app.instance_path, "qcm.sqlite3"))
     if test_config:
         app.config.update(test_config)
     engine = CorrectionEngine(timeout=app.config["EXECUTION_TIMEOUT"])
@@ -40,6 +44,30 @@ def create_app(test_config=None):
     @app.get("/")
     def index():
         return render_template("index.html", sessions=SESSIONS, exercises=EXERCISES)
+
+    @app.route("/qcm", methods=["GET", "POST"])
+    def qcm():
+        student_name = request.form.get("student_name", "").strip()
+        answers = {number: request.form.get(f"question_{number}", "")
+                   for number in range(1, QUESTION_COUNT + 1)}
+        error = None
+        if request.method == "POST":
+            if not student_name or len(student_name) > 120:
+                error = "Veuillez renseigner votre nom et prénom (120 caractères maximum)."
+            elif any(len(request.form.getlist(f"question_{number}")) != 1
+                     or answer not in CHOICES for number, answer in answers.items()):
+                error = "Veuillez choisir une seule réponse par question, parmi A, B, C et D, pour les 15 questions."
+            else:
+                try:
+                    save_submission(app.config["QCM_DATABASE"], student_name, answers)
+                except (OSError, sqlite3.Error):
+                    app.logger.exception("Impossible d'enregistrer les réponses au QCM")
+                    error = "L’enregistrement a échoué. Vos réponses sont conservées dans le formulaire : veuillez réessayer."
+                else:
+                    flash("Vos réponses ont bien été enregistrées. Merci !", "qcm_success")
+                    return redirect(url_for("qcm"))
+        return render_template("qcm.html", question_count=QUESTION_COUNT, choices=CHOICES,
+                               student_name=student_name, answers=answers, error=error)
 
     @app.post("/corriger")
     def correct():
