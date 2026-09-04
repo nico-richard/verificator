@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Espace enseignant — Verificator</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<main>
+    <nav class="page-nav" aria-label="Navigation principale">
+        <a href="{{ url_for('qcm') }}">QCM étudiant</a>
+    </nav>
+    <h1>Espace enseignant</h1>
+    <p class="intro">Connectez-vous avec le mot de passe enseignant pour consulter et exporter les réponses au QCM.</p>
+    {% if error %}<div class="alert error" role="alert">{{ error }}</div>{% endif %}
+    {% if not unavailable %}
+    <form method="post" action="{{ url_for('teacher.login') }}">
+        <label for="teacher-password">Mot de passe enseignant
+            <input id="teacher-password" name="password" type="password" autocomplete="current-password" required autofocus>
+        </label>
+        <button type="submit">Accéder aux réponses</button>
+    </form>
+    {% endif %}
+</main>
+</body>
+</html>

@@ -6,21 +6,26 @@ from flask import Flask, flash, redirect, render_template, request, session, url
 from .correction.engine import CorrectionEngine
 from .exercises import EXERCISES, SESSIONS
 from .qcm import CHOICES, QUESTION_COUNT, save_submission
+from .teacher import teacher as teacher_blueprint
 
 
 def create_app(test_config=None):
     app = Flask(__name__)
     app.config.from_mapping(MAX_UPLOAD_BYTES=64 * 1024, EXECUTION_TIMEOUT=3,
                             ACCESS_PASSWORD=os.environ.get("VERIFICATOR_PASSWORD", ""),
+                            TEACHER_PASSWORD=os.environ.get("VERIFICATOR_TEACHER_PASSWORD", ""),
                             SECRET_KEY=os.environ.get("VERIFICATOR_SECRET_KEY", "change-me"),
                             QCM_DATABASE=os.environ.get("VERIFICATOR_QCM_DATABASE")
                             or os.path.join(app.instance_path, "qcm.sqlite3"))
     if test_config:
         app.config.update(test_config)
     engine = CorrectionEngine(timeout=app.config["EXECUTION_TIMEOUT"])
+    app.register_blueprint(teacher_blueprint)
 
     @app.before_request
     def require_login():
+        if request.blueprint == "teacher":
+            return None
         if not app.config["ACCESS_PASSWORD"]:
             return "Le mot de passe Verificator n'est pas configuré.", 503
         if request.endpoint not in {"login", "static"} and not session.get("authenticated"):

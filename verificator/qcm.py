@@ -7,6 +7,25 @@ QUESTION_COUNT = 15
 CHOICES = ("A", "B", "C", "D")
 
 
+def get_submissions(database_path):
+    database_path = Path(database_path)
+    if not database_path.exists():
+        return []
+    connection = sqlite3.connect(database_path.resolve().as_uri() + "?mode=ro", uri=True)
+    connection.row_factory = sqlite3.Row
+    try:
+        if not connection.execute(
+            "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'qcm_submissions'"
+        ).fetchone():
+            return []
+        rows = connection.execute(
+            "SELECT id, student_name, answers, submitted_at FROM qcm_submissions ORDER BY id DESC"
+        ).fetchall()
+        return [{**dict(row), "answers": json.loads(row["answers"])} for row in rows]
+    finally:
+        connection.close()
+
+
 def save_submission(database_path, student_name, answers):
     database_path = Path(database_path)
     database_path.parent.mkdir(parents=True, exist_ok=True)
