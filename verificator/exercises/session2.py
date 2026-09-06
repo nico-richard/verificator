@@ -9,6 +9,7 @@ class Exercise:
     id: str
     session: str
     title: str
+    filename: str
     function_name: str
     test_module: callable
 
@@ -135,8 +136,14 @@ def creer_test(nom, cas):
 
 
 EXERCICES_SEANCE2 = [
-    Exercise(identifiant, "2", f"Exercice {numero} — {titre}", nom,
-             creer_test(nom, cas))
+    Exercise(
+        identifiant,
+        "2",
+        f"Exercice {numero} — {titre}",
+        f"s2_ex{numero}.py",
+        nom,
+        creer_test(nom, cas),
+    )
     for numero, (identifiant, titre, nom, cas)
     in enumerate(CAS_EXERCICES, start=1)
 ]

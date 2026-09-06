@@ -81,13 +81,49 @@ def test_python_error():
     assert result["status"] == "python_error"
 
 
-def test_upload_validation():
+def authenticated_client():
     client = create_app({"TESTING": True, "ACCESS_PASSWORD": "test"}).test_client()
     with client.session_transaction() as current_session:
         current_session["authenticated"] = True
-    response = client.post("/corriger", data={"exercise": "s2-moyenne", "file": (BytesIO(b"x"), "notes.txt")}, content_type="multipart/form-data")
+    return client
+
+
+def test_upload_rejects_non_python_file():
+    response = authenticated_client().post(
+        "/corriger",
+        data={"exercise": "s2-moyenne", "file": (BytesIO(b"x"), "notes.txt")},
+        content_type="multipart/form-data",
+    )
     assert "extension .py" in response.get_data(as_text=True)
 
+
+def test_upload_rejects_wrong_python_filename():
+    response = authenticated_client().post(
+        "/corriger",
+        data={"exercise": "s2-moyenne", "file": (BytesIO(b"x"), "moyenne.py")},
+        content_type="multipart/form-data",
+    )
+    assert "s2_ex4.py" in response.get_data(as_text=True)
+
+
+def test_uploaded_source_is_displayed_as_read_only_escaped_code():
+    source = b"def moyenne(valeurs):\n    return 1 < 2\n"
+    response = authenticated_client().post(
+        "/corriger",
+        data={"exercise": "s2-moyenne", "file": (BytesIO(source), "s2_ex4.py")},
+        content_type="multipart/form-data",
+    )
+    html = response.get_data(as_text=True)
+    assert "Programme chargé" in html
+    assert "def moyenne(valeurs):" in html
+    assert "return 1 &lt; 2" in html
+    assert "<textarea" not in html
+
+
+def test_session_2_exercises_define_expected_filenames():
+    assert [exercise.filename for exercise in EXERCISES.values()] == [
+        f"s2_ex{number}.py" for number in range(1, 11)
+    ]
 
 def test_index_lists_the_ten_session_2_exercises():
     client = create_app({"TESTING": True, "ACCESS_PASSWORD": "test"}).test_client()

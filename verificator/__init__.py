@@ -80,6 +80,7 @@ def create_app(test_config=None):
         uploaded = request.files.get("file")
         error = None
         result = None
+        source_code = None
         exercise = EXERCISES.get(exercise_id)
         if not exercise:
             error = "Séance ou exercice inconnu."
@@ -87,13 +88,19 @@ def create_app(test_config=None):
             error = "Veuillez sélectionner un fichier Python."
         elif not uploaded.filename.lower().endswith(".py"):
             error = "Le fichier doit avoir l'extension .py."
+        elif uploaded.filename != exercise.filename:
+            error = (
+                f"Le fichier de cet exercice doit s'appeler {exercise.filename}."
+            )
         else:
             data = uploaded.read()
             if len(data) > app.config["MAX_UPLOAD_BYTES"]:
                 error = "Le fichier dépasse la taille maximale autorisée (64 Ko)."
             else:
+                source_code = data.decode("utf-8", errors="replace")
                 result = engine.correct(exercise, data)
         return render_template("index.html", sessions=SESSIONS, exercises=EXERCISES,
-                               selected=exercise_id, error=error, result=result)
+                               selected=exercise_id, error=error, result=result,
+                               source_code=source_code)
 
     return app
