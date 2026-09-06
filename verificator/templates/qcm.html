@@ -26,6 +26,21 @@
             <input id="student-name" name="student_name" type="text" autocomplete="name"
                    maxlength="120" value="{{ student_name }}" required>
         </label>
+        <label>Questionnaire
+            <select name="questionnaire" required>
+                <option value="">Choisir le questionnaire</option>
+                {% for key, item in questionnaires.items() %}
+                <option value="{{ key }}" {% if questionnaire == key %}selected{% endif %}>{{ item.titre }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label>Version
+            <select name="version" required>
+                <option value="">Choisir la version</option>
+                <option value="A" {% if version == 'A' %}selected{% endif %}>A — Gauche</option>
+                <option value="B" {% if version == 'B' %}selected{% endif %}>B — Droite</option>
+            </select>
+        </label>
         <p class="intro">Toutes les questions sont obligatoires. Vérifiez vos choix avant l’envoi.</p>
         {% for number in range(1, question_count + 1) %}
         <fieldset class="qcm-question">

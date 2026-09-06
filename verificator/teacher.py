@@ -79,14 +79,14 @@ def export_csv():
         return "L’export est temporairement indisponible. Veuillez réessayer.", 503
     output = io.StringIO(newline="")
     writer = csv.writer(output, delimiter=";")
-    writer.writerow(["Envoi", "Nom et prénom", "Date (UTC)"]
+    writer.writerow(["Envoi", "Nom et prénom", "Date (UTC)", "Questionnaire", "Version", "Score", "Total"]
                     + [f"Q{number}" for number in range(1, QUESTION_COUNT + 1)])
     for submission in submissions:
         name = submission["student_name"]
         # Empêcher les tableurs d'interpréter un nom comme une formule.
         if name.lstrip().startswith(("=", "+", "-", "@")) or name.startswith(("\t", "\r", "\n")):
             name = "'" + name
-        writer.writerow([submission["id"], name, submission["submitted_at"]]
+        writer.writerow([submission["id"], name, submission["submitted_at"], submission.get("questionnaire"), submission.get("version"), submission.get("score"), submission.get("total")]
                         + [submission["answers"].get(str(number), "")
                            for number in range(1, QUESTION_COUNT + 1)])
     return Response("\ufeff" + output.getvalue(), content_type="text/csv; charset=utf-8",

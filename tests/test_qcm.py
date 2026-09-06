@@ -27,7 +27,7 @@ def client(app):
 
 
 def submission():
-    return {"student_name": "  Camille Dupont  ",
+    return {"student_name": "  Camille Dupont  ", "questionnaire": "seance2", "version": "A",
             **{f"question_{number}": "ABCD"[(number - 1) % 4]
                for number in range(1, 16)}}
 
@@ -114,3 +114,40 @@ def test_qcm_storage_failure_keeps_answers(client):
     assert 'value="Camille Dupont"' in html
     assert html.count("checked") == 15
     assert "Vos réponses ont bien été enregistrées" not in html
+
+
+@pytest.mark.parametrize("version", ["A", "B"])
+@pytest.mark.parametrize("questionnaire", ["seance1", "seance2", "seance3", "seance4"])
+def test_version_scores_match_selected_questionnaire(client, app, version, questionnaire):
+    from verificator.qcm import QCM_KEYS, get_submissions
+    key = QCM_KEYS[questionnaire][version]
+    data = submission()
+    data.update(questionnaire=questionnaire, version=version)
+    data.update({f"question_{i}": correct or "A" for i, correct in enumerate(key, 1)})
+    assert client.post("/qcm", data=data).status_code == 302
+    saved = get_submissions(app.config["QCM_DATABASE"])[0]
+    assert saved["version"] == version
+    assert saved["questionnaire"] == questionnaire
+    assert saved["score"] == saved["total"] == sum(x is not None for x in key)
+
+
+@pytest.mark.parametrize("field,value", [("version", ""), ("version", "C"), ("questionnaire", ""), ("questionnaire", "invalid")])
+def test_missing_or_unknown_version_rejected(client, app, field, value):
+    data = submission()
+    data[field] = value
+    assert "Veuillez sélectionner le questionnaire" in client.post("/qcm", data=data).get_data(as_text=True)
+    assert not app.config["QCM_DATABASE"].exists()
+
+
+def test_legacy_database_keeps_ungraded_answers(app):
+    from verificator.qcm import save_submission, get_submissions
+    database = app.config["QCM_DATABASE"]
+    database.parent.mkdir(parents=True)
+    with sqlite3.connect(database) as connection:
+        connection.execute("CREATE TABLE qcm_submissions (id INTEGER PRIMARY KEY, student_name TEXT, answers TEXT, submitted_at TEXT DEFAULT CURRENT_TIMESTAMP)")
+        connection.execute("INSERT INTO qcm_submissions (student_name, answers) VALUES ('Ancien', '{}')")
+    assert get_submissions(database)[0]["student_name"] == "Ancien"
+    save_submission(database, "Nouveau", {i: "A" for i in range(1, 16)}, "seance2", "B")
+    rows = get_submissions(database)
+    assert rows[1]["score"] is None and rows[1]["version"] is None
+    assert rows[0]["version"] == "B" and rows[0]["score"] is not None

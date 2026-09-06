@@ -20,7 +20,7 @@ Les tests unitaires peuvent être lancés avec `python -m pytest`. Aucun test ni
 
 ## QCM de début de séance
 
-La page `/qcm`, accessible depuis la navigation, permet aux étudiants de saisir leur nom et prénom et de répondre à 15 questions, avec un choix obligatoire parmi A, B, C et D pour chaque question. Les énoncés et les propositions sont présentés par l'enseignant en cours ; la page sert de feuille de réponses, sans notation automatique. Elle utilise la même protection par mot de passe que le correcteur Python.
+La page `/qcm`, accessible depuis la navigation, permet aux étudiants de saisir leur nom et prénom et de répondre à 15 questions, avec un choix obligatoire parmi A, B, C et D pour chaque question. Les énoncés et les propositions sont présentés par l'enseignant en cours ; la page sert de feuille de réponses, avec notation dans l'espace enseignant selon le questionnaire et la version A/B choisis. Elle utilise la même protection par mot de passe que le correcteur Python.
 
 Après validation côté serveur, chaque envoi est enregistré dans `instance/qcm.sqlite3`, dans la table `qcm_submissions` : identifiant, nom, réponses au format JSON (numéros de questions associés aux lettres) et date UTC. Un message confirme l'enregistrement ; actualiser la page de confirmation ne renvoie pas les réponses. Plusieurs envois du même nom restent possibles et sont conservés séparément.
 
@@ -55,3 +55,16 @@ Le prototype n'utilise pas de comptes individuels. Seules les réponses au QCM s
 ### Protection par mot de passe
 
 Dans Render, définir `VERIFICATOR_PASSWORD` et `VERIFICATOR_SECRET_KEY`. Le mot de passe ne doit jamais être écrit dans le dépôt. Utiliser HTTPS ainsi qu'un mot de passe long et unique. Si le mot de passe est absent, l'application refuse l'accès avec une erreur 503.
+
+## QCM en versions A / B
+
+Le cours projette A à gauche et B à droite. Chaque étudiant choisit explicitement
+le questionnaire et sa version avant de répondre. L'espace enseignant et son
+export CSV présentent le questionnaire, la version et le score ; les questions
+de positionnement ne comptent pas. Les anciens envois restent sans note.
+
+Les grilles privées `verificator/qcm_keys.json` sont exportées depuis
+`data/qcm_versions.json` dans cours_python_iut, avec `export_qcm_versions.py`.
+Déployer les deux dépôts ensemble après une modification des versions projetées.
+Les réponses sont conservées dans leur ordre de présentation et les scores sont
+enregistrés lors de l'envoi, pour ne pas changer rétroactivement avec une grille.

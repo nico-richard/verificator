@@ -79,7 +79,7 @@ def test_empty_results_do_not_create_database(teacher_client, app):
     export = teacher_client.get("/enseignant/qcm/export.csv")
     rows = list(csv.reader(io.StringIO(export.data.decode("utf-8-sig")), delimiter=";"))
     assert len(rows) == 1
-    assert len(rows[0]) == 18
+    assert len(rows[0]) == 22
 
 
 def test_results_show_answers_newest_first_and_escape_names(teacher_client, app):
@@ -115,11 +115,11 @@ def test_csv_preserves_answers_and_neutralizes_formulas(teacher_client, app, nam
     assert response.headers["Cache-Control"] == "no-store"
     assert response.data.startswith(b"\xef\xbb\xbf")
     rows = list(csv.reader(io.StringIO(response.data.decode("utf-8-sig")), delimiter=";"))
-    assert rows[0] == ["Envoi", "Nom et prénom", "Date (UTC)"] + [f"Q{number}" for number in range(1, 16)]
+    assert rows[0] == ["Envoi", "Nom et prénom", "Date (UTC)", "Questionnaire", "Version", "Score", "Total"] + [f"Q{number}" for number in range(1, 16)]
     assert len(rows) == 2
     assert rows[1][1] == exported_name
     assert rows[1][2]
-    assert rows[1][3:] == list(answers.values())
+    assert rows[1][7:] == list(answers.values())
 
 
 def test_teacher_logout_revokes_results_and_export_but_preserves_student_login(teacher_client):

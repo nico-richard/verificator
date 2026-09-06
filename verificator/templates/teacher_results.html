@@ -26,7 +26,7 @@
     <div class="alert error" role="alert">{{ error }}</div>
     {% elif submissions %}
     <p>{{ submissions|length }} envoi(s) enregistré(s), du plus récent au plus ancien.</p>
-    <p class="intro">Chaque ligne correspond à un envoi. Les dates sont en UTC. Les réponses ne sont pas notées automatiquement.</p>
+    <p class="intro">Chaque ligne correspond à un envoi. Les dates sont en UTC. Le score utilise le questionnaire et la version choisis. Les questions de positionnement sont exclues du score. Les anciens envois restent sans note.</p>
     <div class="table-scroll" role="region" aria-label="Réponses des étudiants" tabindex="0">
         <table class="answers-table">
             <caption>Réponses aux {{ question_count }} questions</caption>
@@ -35,6 +35,7 @@
                     <th scope="col">Envoi</th>
                     <th scope="col">Nom et prénom</th>
                     <th scope="col">Date (UTC)</th>
+                    <th scope="col">Questionnaire</th><th scope="col">Version</th><th scope="col">Score</th>
                     {% for number in range(1, question_count + 1) %}<th scope="col">Q{{ number }}</th>{% endfor %}
                 </tr>
             </thead>
@@ -44,6 +45,9 @@
                     <td>{{ submission.id }}</td>
                     <th scope="row">{{ submission.student_name }}</th>
                     <td class="submission-date">{{ submission.submitted_at }}</td>
+                    <td>{{ submission.get('questionnaire') or '—' }}</td>
+                    <td>{{ submission.get('version') or '—' }}</td>
+                    <td>{% if submission.get('score') is not none %}{{ submission.score }}/{{ submission.total }}{% else %}—{% endif %}</td>
                     {% for number in range(1, question_count + 1) %}
                     <td>{{ submission.answers.get(number|string, '—') }}</td>
                     {% endfor %}
