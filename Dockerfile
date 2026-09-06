@@ -4,4 +4,4 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 ENV FLASK_APP=verificator:create_app
-CMD ["flask", "run", "--host=0.0.0.0", "--port=10000"]
+CMD ["gunicorn", "--bind", "0.0.0.0:10000", "--workers", "1", "--worker-class", "gthread", "--threads", "4", "--timeout", "15", "verificator:create_app()"]

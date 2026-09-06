@@ -12,7 +12,7 @@ $env:FLASK_APP = "verificator:create_app"
 flask run --debug
 ```
 
-Ouvrir http://127.0.0.1:5000. Un exemple est disponible pour la séance 2, exercice `moyenne`.
+Ouvrir http://127.0.0.1:5000. Les dix exercices de la séance 2 sont disponibles dans l'ordre du TD.
 
 ## Vérifications proposées
 
@@ -40,11 +40,13 @@ Les tests de consultation, d'authentification et d'export sont dans `tests/test_
 
 ## Déploiement Render / Docker
 
-Le prototype peut être déployé avec le `Dockerfile` fourni. En production publique, l'exécution étudiante doit être renforcée : image Docker sans réseau, utilisateur non privilégié, limites CPU/mémoire/PIDs, filesystem en lecture seule et timeout côté orchestrateur. Le processus séparé actuel est une barrière de prototype, pas une sandbox suffisante à lui seul.
+Le `Dockerfile` lance Gunicorn avec un worker et quatre threads. Cette limite permet d'absorber plusieurs dépôts simultanés sans lancer trop de programmes étudiants sur une petite instance Render. Gunicorn accorde 15 secondes à une requête HTTP ; chaque programme étudiant conserve son propre délai maximal de 3 secondes.
+
+En production publique, l'exécution étudiante doit être renforcée : image Docker sans réseau, utilisateur non privilégié, limites CPU/mémoire/PIDs, filesystem en lecture seule et timeout côté orchestrateur. Le processus séparé actuel est une barrière de prototype, pas une sandbox suffisante à lui seul.
 
 ## Ajouter un exercice
 
-Créer un module dans `verificator/exercises/`, y déclarer un objet `Exercise` avec `test_file(path)`, puis l'ajouter à `EXERCISES` dans `verificator/exercises/__init__.py`. Les tests doivent retourner une liste de dictionnaires `{name, passed, message}`.
+Créer un module dans `verificator/exercises/`, y déclarer un objet `Exercise` avec une fonction `test_module(module)`, puis l'ajouter à `EXERCISES` dans `verificator/exercises/__init__.py`. Les tests doivent retourner une liste de dictionnaires `{name, passed, message}`.
 
 ## Limites et prochaines étapes
 

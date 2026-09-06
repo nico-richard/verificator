@@ -1,4 +1,4 @@
-from .session2 import moyenne_exercise
+from .session2 import EXERCICES_SEANCE2
 
-EXERCISES = {moyenne_exercise.id: moyenne_exercise}
+EXERCISES = {exercise.id: exercise for exercise in EXERCICES_SEANCE2}
 SESSIONS = {"2": "Séance 2"}
