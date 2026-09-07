@@ -95,6 +95,37 @@ def test_unrounded_submissions_are_rejected(exercise_id, source):
     assert any(not test["passed"] for test in result["tests"])
 
 
+@pytest.mark.parametrize(
+    ("exercise_id", "source"),
+    [
+        (
+            "s2-convertir-c-en-k",
+            "def convertir_c_en_k(temperature): return round(temperature + 273.15, 2)",
+        ),
+        (
+            "s2-generer-mesures",
+            """def generer_mesures(debut, pas, nombre):
+    return [debut + indice * pas for indice in range(min(nombre, 4))]
+""",
+        ),
+        (
+            "s2-maximum",
+            "def maximum(valeurs): return int(max(valeurs))",
+        ),
+        (
+            "s2-nettoyer-noms",
+            """def nettoyer_noms(texte):
+    return [nom.strip().title() for nom in texte.split(";") if nom.strip()]
+""",
+        ),
+    ],
+)
+def test_submissions_that_violate_statements_are_rejected(exercise_id, source):
+    result = run(source, exercise_id)
+    assert result["status"] == "ok"
+    assert any(not test["passed"] for test in result["tests"])
+
+
 def test_missing_function():
     result = run("x = 1")
     assert result["tests"][0]["message"] == "Fonction absente."
@@ -103,6 +134,23 @@ def test_missing_function():
 def test_python_error():
     result = run("raise RuntimeError('boom')")
     assert result["status"] == "python_error"
+
+
+@pytest.mark.parametrize(
+    ("source", "message"),
+    [
+        ("def moyenne(valeurs):\n    print(valeurs)\n    return 0", "print()"),
+        ("def moyenne(valeurs):\n    return input()", "input()"),
+        (
+            "def moyenne(valeurs): return 0\nmoyenne([1, 2, 3])",
+            "chargement du fichier",
+        ),
+    ],
+)
+def test_forbidden_calls_are_rejected(source, message):
+    result = run(source)
+    assert result["status"] == "python_error"
+    assert message in result["message"]
 
 
 def authenticated_client():
