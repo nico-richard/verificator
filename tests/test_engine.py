@@ -10,15 +10,16 @@ from verificator.exercises import EXERCISES
 SOLUTIONS = {
     "s2-convertir-c-en-k": "def convertir_c_en_k(temperature): return temperature + 273.15",
     "s2-convertir-depuis-m": """def convertir_depuis_m(valeur, unite="m"):
-    if unite == "cm": return valeur * 100
-    if unite == "km": return valeur / 1000
-    return valeur
+    if unite == "cm": resultat = valeur * 100
+    elif unite == "km": resultat = valeur / 1000
+    else: resultat = valeur
+    return round(resultat, 1)
 """,
     "s2-deplacer": """def deplacer(position, dx, dy):
     x, y = position
     return (x + dx, y + dy)
 """,
-    "s2-moyenne": "def moyenne(valeurs): return sum(valeurs) / len(valeurs)",
+    "s2-moyenne": "def moyenne(valeurs): return round(sum(valeurs) / len(valeurs), 2)",
     "s2-analyser-phrase": """def analyser_phrase(phrase):
     return (phrase[:1], phrase[:5], phrase[-5:], phrase.split())
 """,
@@ -69,6 +70,29 @@ def test_correct_submissions(exercise_id):
     result = run(SOLUTIONS[exercise_id], exercise_id)
     assert result["status"] == "ok"
     assert all(test["passed"] for test in result["tests"])
+
+
+@pytest.mark.parametrize(
+    ("exercise_id", "source"),
+    [
+        (
+            "s2-convertir-depuis-m",
+            """def convertir_depuis_m(valeur, unite="m"):
+    if unite == "cm": return valeur * 100
+    if unite == "km": return valeur / 1000
+    return valeur
+""",
+        ),
+        (
+            "s2-moyenne",
+            "def moyenne(valeurs): return sum(valeurs) / len(valeurs)",
+        ),
+    ],
+)
+def test_unrounded_submissions_are_rejected(exercise_id, source):
+    result = run(source, exercise_id)
+    assert result["status"] == "ok"
+    assert any(not test["passed"] for test in result["tests"])
 
 
 def test_missing_function():
