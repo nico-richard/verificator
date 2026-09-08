@@ -6,6 +6,7 @@ import sqlite3
 from flask import Blueprint, Response, current_app, redirect, render_template, request, session, url_for
 
 from .qcm import QUESTION_COUNT, get_submissions
+from .verifications import get_verifications
 
 
 teacher = Blueprint("teacher", __name__, url_prefix="/enseignant")
@@ -26,6 +27,7 @@ def require_teacher_login():
             error="L’espace enseignant nécessite une clé de session privée configurée par l’administrateur.",
         ), 503
     if request.endpoint != "teacher.login" and not session.get("teacher_authenticated"):
+        session["teacher_next"] = request.endpoint
         return redirect(url_for("teacher.login"))
 
 
@@ -45,7 +47,7 @@ def login():
         expected = current_app.config["TEACHER_PASSWORD"].encode("utf-8")
         if hmac.compare_digest(password, expected):
             session["teacher_authenticated"] = True
-            return redirect(url_for("teacher.results"))
+            return redirect(url_for(session.pop("teacher_next", "teacher.results")))
         error = "Mot de passe enseignant incorrect."
     return render_template("teacher_login.html", error=error)
 
@@ -68,6 +70,19 @@ def results():
         ), 503
     return render_template("teacher_results.html", submissions=submissions,
                            question_count=QUESTION_COUNT)
+
+
+@teacher.get("/verifications")
+def verifications():
+    try:
+        submissions = get_verifications(current_app.config["QCM_DATABASE"])
+    except (OSError, sqlite3.Error):
+        current_app.logger.exception("Impossible de consulter les vérifications")
+        return render_template(
+            "teacher_verifications.html", submissions=[],
+            error="Les vérifications sont temporairement indisponibles. Veuillez réessayer.",
+        ), 503
+    return render_template("teacher_verifications.html", submissions=submissions)
 
 
 @teacher.get("/qcm/export.csv")

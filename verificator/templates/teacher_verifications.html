@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Vérifications Python — Verificator</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<main class="teacher-results">
+    <nav class="page-nav" aria-label="Navigation principale">
+        <a href="{{ url_for('index') }}">Correction Python</a>
+        <a href="{{ url_for('teacher.verifications') }}" aria-current="page">Vérifications Python</a>
+        <a href="{{ url_for('teacher.results') }}">Réponses au QCM</a>
+    </nav>
+    <h1>Vérifications Python</h1>
+    <div class="teacher-actions">
+        <a href="{{ url_for('teacher.verifications') }}">Actualiser</a>
+        <form method="post" action="{{ url_for('teacher.logout') }}">
+            <button type="submit">Déconnexion enseignant</button>
+        </form>
+    </div>
+    {% if error %}
+    <div class="alert error" role="alert">{{ error }}</div>
+    {% elif submissions %}
+    <p>{{ submissions|length }} vérification(s) enregistrée(s), de la plus récente à la plus ancienne.</p>
+    <div class="table-scroll" role="region" aria-label="Vérifications des étudiants" tabindex="0">
+        <table class="answers-table verifications-table">
+            <thead>
+                <tr><th scope="col">Envoi</th><th scope="col">Nom et prénom</th><th scope="col">IP</th><th scope="col">Date (UTC)</th><th scope="col">Exercice</th><th scope="col">Programme</th></tr>
+            </thead>
+            <tbody>
+                {% for submission in submissions %}
+                <tr>
+                    <td>{{ submission.id }}</td>
+                    <th scope="row">{{ submission.student_name }}</th>
+                    <td>{{ submission.ip_address }}</td>
+                    <td class="submission-date">{{ submission.submitted_at }}</td>
+                    <td>{{ submission.exercise_id }}</td>
+                    <td><details><summary>Afficher</summary><pre><code>{{ submission.source_code }}</code></pre></details></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p class="alert pass" role="status">Aucune vérification enregistrée pour le moment.</p>
+    {% endif %}
+</main>
+</body>
+</html>

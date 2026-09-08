@@ -2,6 +2,8 @@
 
 Plateforme Flask locale permettant de déposer un fichier Python et d'exécuter les tests préparés par l'enseignant.
 
+Chaque vérification Python exige le nom et prénom de l'étudiant. Avant la correction, l'application enregistre dans `instance/qcm.sqlite3` le nom, l'adresse IP de la requête, l'exercice choisi, le contenu du programme et la date UTC. Si l'enregistrement échoue, la correction n'est pas exécutée afin que l'historique enseignant reste complet.
+
 ## Lancement local
 
 ```powershell
@@ -32,7 +34,7 @@ Les tests de cette page sont dans `tests/test_qcm.py` et peuvent être lancés a
 
 Définir `VERIFICATOR_TEACHER_PASSWORD` dans les variables d'environnement (Render : service Verificator, **Environment**). Choisir un mot de passe privé, différent de `VERIFICATOR_PASSWORD`, et conserver une valeur privée aléatoire pour `VERIFICATOR_SECRET_KEY`. Aucun mot de passe ne doit être ajouté au dépôt. L'espace enseignant refuse l'accès si son mot de passe est absent ou identique au mot de passe étudiant, ou si la clé de session conserve sa valeur par défaut.
 
-Depuis `/qcm`, cliquer sur **Espace enseignant**, ou ouvrir directement `/enseignant/qcm`. La connexion enseignant est indépendante de la connexion étudiant. La page présente tous les envois du plus récent au plus ancien, avec le nom, la date UTC et les choix Q1 à Q15. Le bouton **Actualiser** recharge les réponses et **Déconnexion enseignant** ferme cet accès sans déconnecter une éventuelle session étudiant.
+Depuis la correction Python ou `/qcm`, cliquer sur **Espace enseignant**. La connexion enseignant est indépendante de la connexion étudiant. `/enseignant/verifications` présente les vérifications Python du plus récent au plus ancien avec le nom, l'IP, la date, l'exercice et le programme. `/enseignant/qcm` présente les réponses au QCM. Le bouton **Actualiser** recharge les données et **Déconnexion enseignant** ferme cet accès sans déconnecter une éventuelle session étudiant.
 
 Le bouton **Exporter en CSV** télécharge toutes les réponses via `/enseignant/qcm/export.csv`, soumis à la même authentification. Le CSV utilise le séparateur point-virgule et l'encodage UTF-8 avec BOM pour faciliter son ouverture dans un tableur. Les noms pouvant être interprétés comme des formules sont préfixés par une apostrophe uniquement dans l'export. Les pages enseignant et les exports ne doivent pas être mis en cache par le navigateur.
 
@@ -50,7 +52,7 @@ Créer un module dans `verificator/exercises/`, y déclarer un objet `Exercise` 
 
 ## Limites et prochaines étapes
 
-Le prototype n'utilise pas de comptes individuels. Seules les réponses au QCM sont conservées dans une base SQLite. Les fichiers Python sont temporaires et supprimés après traitement. Avant une mise en ligne publique, utiliser une sandbox Docker dédiée ou un service d'exécution isolé, appliquer des quotas et journaliser les exécutions sans conserver le code étudiant.
+Le prototype n'utilise pas de comptes individuels. Les réponses au QCM et les vérifications Python sont conservées dans une base SQLite. Les fichiers Python temporaires sont supprimés après traitement, mais leur contenu reste dans l'historique enseignant. Cette conservation du nom, de l'IP et du code doit être annoncée aux étudiants et encadrée par une durée de conservation adaptée. Avant une mise en ligne publique, utiliser une sandbox Docker dédiée ou un service d'exécution isolé et appliquer des quotas.
 
 ### Protection par mot de passe
 

@@ -153,36 +153,43 @@ def test_forbidden_calls_are_rejected(source, message):
     assert message in result["message"]
 
 
-def authenticated_client():
-    client = create_app({"TESTING": True, "ACCESS_PASSWORD": "test"}).test_client()
+def authenticated_client(tmp_path):
+    client = create_app({
+        "TESTING": True,
+        "ACCESS_PASSWORD": "test",
+        "QCM_DATABASE": tmp_path / "verificator.sqlite3",
+    }).test_client()
     with client.session_transaction() as current_session:
         current_session["authenticated"] = True
     return client
 
 
-def test_upload_rejects_non_python_file():
-    response = authenticated_client().post(
+def test_upload_rejects_non_python_file(tmp_path):
+    response = authenticated_client(tmp_path).post(
         "/corriger",
-        data={"exercise": "s2-moyenne", "file": (BytesIO(b"x"), "notes.txt")},
+        data={"student_name": "Camille", "exercise": "s2-moyenne",
+              "file": (BytesIO(b"x"), "notes.txt")},
         content_type="multipart/form-data",
     )
     assert "extension .py" in response.get_data(as_text=True)
 
 
-def test_upload_rejects_wrong_python_filename():
-    response = authenticated_client().post(
+def test_upload_rejects_wrong_python_filename(tmp_path):
+    response = authenticated_client(tmp_path).post(
         "/corriger",
-        data={"exercise": "s2-moyenne", "file": (BytesIO(b"x"), "moyenne.py")},
+        data={"student_name": "Camille", "exercise": "s2-moyenne",
+              "file": (BytesIO(b"x"), "moyenne.py")},
         content_type="multipart/form-data",
     )
     assert "s2_ex4.py" in response.get_data(as_text=True)
 
 
-def test_uploaded_source_is_displayed_as_read_only_escaped_code():
+def test_uploaded_source_is_displayed_as_read_only_escaped_code(tmp_path):
     source = b"def moyenne(valeurs):\n    return 1 < 2\n"
-    response = authenticated_client().post(
+    response = authenticated_client(tmp_path).post(
         "/corriger",
-        data={"exercise": "s2-moyenne", "file": (BytesIO(source), "s2_ex4.py")},
+        data={"student_name": "Camille", "exercise": "s2-moyenne",
+              "file": (BytesIO(source), "s2_ex4.py")},
         content_type="multipart/form-data",
     )
     html = response.get_data(as_text=True)
@@ -190,6 +197,37 @@ def test_uploaded_source_is_displayed_as_read_only_escaped_code():
     assert "def moyenne(valeurs):" in html
     assert "return 1 &lt; 2" in html
     assert "<textarea" not in html
+
+
+def test_correction_requires_student_name(tmp_path):
+    response = authenticated_client(tmp_path).post(
+        "/corriger",
+        data={"student_name": "   ", "exercise": "s2-moyenne",
+              "file": (BytesIO(b"def moyenne(valeurs): return 0"), "s2_ex4.py")},
+        content_type="multipart/form-data",
+    )
+    assert "Veuillez renseigner votre nom et prénom" in response.get_data(as_text=True)
+    assert not (tmp_path / "verificator.sqlite3").exists()
+
+
+def test_correction_saves_name_ip_exercise_and_source(tmp_path):
+    import sqlite3
+
+    source = b"def moyenne(valeurs):\n    return round(sum(valeurs) / len(valeurs), 2)\n"
+    response = authenticated_client(tmp_path).post(
+        "/corriger",
+        data={"student_name": "  Camille Dupont  ", "exercise": "s2-moyenne",
+              "file": (BytesIO(source), "s2_ex4.py")},
+        content_type="multipart/form-data",
+        environ_base={"REMOTE_ADDR": "192.0.2.42"},
+    )
+    assert response.status_code == 200
+    with sqlite3.connect(tmp_path / "verificator.sqlite3") as connection:
+        row = connection.execute(
+            "SELECT student_name, ip_address, exercise_id, source_code, submitted_at FROM verifications"
+        ).fetchone()
+    assert row[:4] == ("Camille Dupont", "192.0.2.42", "s2-moyenne", source.decode())
+    assert row[4]
 
 
 def test_session_2_exercises_define_expected_filenames():

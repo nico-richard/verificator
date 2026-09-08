@@ -2,11 +2,13 @@ import hmac
 import os
 import sqlite3
 from flask import Flask, flash, redirect, render_template, request, session, url_for
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 from .correction.engine import CorrectionEngine
 from .exercises import EXERCISES, SESSIONS
 from .qcm import CHOICES, QUESTION_COUNT, QCM_KEYS, save_submission
 from .teacher import teacher as teacher_blueprint
+from .verifications import save_verification
 
 
 def create_app(test_config=None):
@@ -15,10 +17,14 @@ def create_app(test_config=None):
                             ACCESS_PASSWORD=os.environ.get("VERIFICATOR_PASSWORD", ""),
                             TEACHER_PASSWORD=os.environ.get("VERIFICATOR_TEACHER_PASSWORD", ""),
                             SECRET_KEY=os.environ.get("VERIFICATOR_SECRET_KEY", "change-me"),
+                            TRUST_PROXY=os.environ.get("VERIFICATOR_TRUST_PROXY", "").lower()
+                            in {"1", "true", "yes"} or os.environ.get("RENDER", "").lower() == "true",
                             QCM_DATABASE=os.environ.get("VERIFICATOR_QCM_DATABASE")
                             or os.path.join(app.instance_path, "qcm.sqlite3"))
     if test_config:
         app.config.update(test_config)
+    if app.config["TRUST_PROXY"]:
+        app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1)
     engine = CorrectionEngine(timeout=app.config["EXECUTION_TIMEOUT"])
     app.register_blueprint(teacher_blueprint)
 
@@ -82,13 +88,16 @@ def create_app(test_config=None):
 
     @app.post("/corriger")
     def correct():
+        student_name = request.form.get("student_name", "").strip()
         exercise_id = request.form.get("exercise", "")
         uploaded = request.files.get("file")
         error = None
         result = None
         source_code = None
         exercise = EXERCISES.get(exercise_id)
-        if not exercise:
+        if not student_name or len(student_name) > 120:
+            error = "Veuillez renseigner votre nom et prénom (120 caractères maximum)."
+        elif not exercise:
             error = "Séance ou exercice inconnu."
         elif not uploaded or not uploaded.filename:
             error = "Veuillez sélectionner un fichier Python."
@@ -104,9 +113,18 @@ def create_app(test_config=None):
                 error = "Le fichier dépasse la taille maximale autorisée (64 Ko)."
             else:
                 source_code = data.decode("utf-8", errors="replace")
-                result = engine.correct(exercise, data)
+                try:
+                    save_verification(
+                        app.config["QCM_DATABASE"], student_name,
+                        request.remote_addr or "Inconnue", exercise_id, source_code,
+                    )
+                except (OSError, sqlite3.Error):
+                    app.logger.exception("Impossible d'enregistrer la vérification")
+                    error = "L’enregistrement de la vérification a échoué. Veuillez réessayer."
+                else:
+                    result = engine.correct(exercise, data)
         return render_template("index.html", sessions=SESSIONS, exercises=EXERCISES,
                                selected=exercise_id, error=error, result=result,
-                               source_code=source_code)
+                               source_code=source_code, student_name=student_name)
 
     return app
