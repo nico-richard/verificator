@@ -27,13 +27,22 @@
     <div class="table-scroll" role="region" aria-label="Vérifications des étudiants" tabindex="0">
         <table class="answers-table verifications-table">
             <thead>
-                <tr><th scope="col">Envoi</th><th scope="col">Nom et prénom</th><th scope="col">IP</th><th scope="col">Date (UTC)</th><th scope="col">Exercice</th><th scope="col">Programme</th></tr>
+                <tr><th scope="col">Envoi</th><th scope="col">Nom et prénom</th><th scope="col">Résultat</th><th scope="col">IP</th><th scope="col">Date (UTC)</th><th scope="col">Exercice</th><th scope="col">Programme</th></tr>
             </thead>
             <tbody>
                 {% for submission in submissions %}
                 <tr>
                     <td>{{ submission.id }}</td>
                     <th scope="row">{{ submission.student_name }}</th>
+                    <td>
+                        {% if submission.get('succeeded') == 1 %}
+                        <span class="verification-status pass">Réussie</span>
+                        {% elif submission.get('succeeded') == 0 %}
+                        <span class="verification-status fail">Échouée</span>
+                        {% else %}
+                        <span class="verification-status unknown">Non disponible</span>
+                        {% endif %}
+                    </td>
                     <td>{{ submission.ip_address }}</td>
                     <td class="submission-date">{{ submission.submitted_at }}</td>
                     <td>{{ submission.exercise_id }}</td>

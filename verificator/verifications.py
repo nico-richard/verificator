@@ -21,7 +21,7 @@ def get_verifications(database_path):
         connection.close()
 
 
-def save_verification(database_path, student_name, ip_address, exercise_id, source_code):
+def save_verification(database_path, student_name, ip_address, exercise_id, source_code, succeeded):
     database_path = Path(database_path)
     database_path.parent.mkdir(parents=True, exist_ok=True)
     connection = sqlite3.connect(database_path)
@@ -34,14 +34,18 @@ def save_verification(database_path, student_name, ip_address, exercise_id, sour
                     ip_address TEXT NOT NULL,
                     exercise_id TEXT NOT NULL,
                     source_code TEXT NOT NULL,
+                    succeeded INTEGER,
                     submitted_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
                 )
             """)
+            columns = {row[1] for row in connection.execute("PRAGMA table_info(verifications)")}
+            if "succeeded" not in columns:
+                connection.execute("ALTER TABLE verifications ADD COLUMN succeeded INTEGER")
             connection.execute(
                 """INSERT INTO verifications
-                   (student_name, ip_address, exercise_id, source_code)
-                   VALUES (?, ?, ?, ?)""",
-                (student_name, ip_address, exercise_id, source_code),
+                   (student_name, ip_address, exercise_id, source_code, succeeded)
+                   VALUES (?, ?, ?, ?, ?)""",
+                (student_name, ip_address, exercise_id, source_code, succeeded),
             )
     finally:
         connection.close()

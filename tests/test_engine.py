@@ -224,10 +224,25 @@ def test_correction_saves_name_ip_exercise_and_source(tmp_path):
     assert response.status_code == 200
     with sqlite3.connect(tmp_path / "verificator.sqlite3") as connection:
         row = connection.execute(
-            "SELECT student_name, ip_address, exercise_id, source_code, submitted_at FROM verifications"
+            "SELECT student_name, ip_address, exercise_id, source_code, succeeded, submitted_at FROM verifications"
         ).fetchone()
     assert row[:4] == ("Camille Dupont", "192.0.2.42", "s2-moyenne", source.decode())
-    assert row[4]
+    assert row[4] == 1
+    assert row[5]
+
+
+def test_correction_saves_failed_result(tmp_path):
+    import sqlite3
+
+    authenticated_client(tmp_path).post(
+        "/corriger",
+        data={"student_name": "Camille", "exercise": "s2-moyenne",
+              "file": (BytesIO(b"def moyenne(valeurs): return 0"), "s2_ex4.py")},
+        content_type="multipart/form-data",
+    )
+    with sqlite3.connect(tmp_path / "verificator.sqlite3") as connection:
+        succeeded = connection.execute("SELECT succeeded FROM verifications").fetchone()[0]
+    assert succeeded == 0
 
 
 def test_session_2_exercises_define_expected_filenames():

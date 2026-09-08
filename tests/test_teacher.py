@@ -106,10 +106,12 @@ def test_results_show_answers_newest_first_and_escape_names(teacher_client, app)
 
 
 def test_teacher_can_view_python_verifications_newest_first(teacher_client, app):
-    save_verification(app.config["QCM_DATABASE"], "Camille", "192.0.2.1", "s2-moyenne", "x = 1")
+    save_verification(
+        app.config["QCM_DATABASE"], "Camille", "192.0.2.1", "s2-moyenne", "x = 1", True,
+    )
     save_verification(
         app.config["QCM_DATABASE"], "<script>Nom</script>", "2001:db8::1",
-        "s2-maximum", "if x < 2:\n    print('<test>')",
+        "s2-maximum", "if x < 2:\n    print('<test>')", False,
     )
     response = teacher_client.get("/enseignant/verifications")
     html = response.get_data(as_text=True)
@@ -119,6 +121,8 @@ def test_teacher_can_view_python_verifications_newest_first(teacher_client, app)
     assert "&lt;script&gt;Nom&lt;/script&gt;" in html
     assert "if x &lt; 2:" in html
     assert "<script>Nom</script>" not in html
+    assert '<span class="verification-status pass">Réussie</span>' in html
+    assert '<span class="verification-status fail">Échouée</span>' in html
     assert response.headers["Cache-Control"] == "no-store"
 
 

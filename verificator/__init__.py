@@ -13,7 +13,10 @@ from .verifications import save_verification
 
 def create_app(test_config=None):
     app = Flask(__name__)
-    app.config.from_mapping(MAX_UPLOAD_BYTES=64 * 1024, EXECUTION_TIMEOUT=3,
+    app.config.from_mapping(MAX_UPLOAD_BYTES=64 * 1024,
+                            EXECUTION_TIMEOUT=float(os.environ.get(
+                                "VERIFICATOR_EXECUTION_TIMEOUT", "10"
+                            )),
                             ACCESS_PASSWORD=os.environ.get("VERIFICATOR_PASSWORD", ""),
                             TEACHER_PASSWORD=os.environ.get("VERIFICATOR_TEACHER_PASSWORD", ""),
                             SECRET_KEY=os.environ.get("VERIFICATOR_SECRET_KEY", "change-me"),
@@ -113,16 +116,20 @@ def create_app(test_config=None):
                 error = "Le fichier dépasse la taille maximale autorisée (64 Ko)."
             else:
                 source_code = data.decode("utf-8", errors="replace")
+                result = engine.correct(exercise, data)
+                succeeded = result.get("status") == "ok" and all(
+                    test.get("passed", False) for test in result.get("tests", [])
+                )
                 try:
                     save_verification(
                         app.config["QCM_DATABASE"], student_name,
                         request.remote_addr or "Inconnue", exercise_id, source_code,
+                        succeeded,
                     )
                 except (OSError, sqlite3.Error):
                     app.logger.exception("Impossible d'enregistrer la vérification")
                     error = "L’enregistrement de la vérification a échoué. Veuillez réessayer."
-                else:
-                    result = engine.correct(exercise, data)
+                    result = None
         return render_template("index.html", sessions=SESSIONS, exercises=EXERCISES,
                                selected=exercise_id, error=error, result=result,
                                source_code=source_code, student_name=student_name)

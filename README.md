@@ -2,7 +2,7 @@
 
 Plateforme Flask locale permettant de déposer un fichier Python et d'exécuter les tests préparés par l'enseignant.
 
-Chaque vérification Python exige le nom et prénom de l'étudiant. Avant la correction, l'application enregistre dans `instance/qcm.sqlite3` le nom, l'adresse IP de la requête, l'exercice choisi, le contenu du programme et la date UTC. Si l'enregistrement échoue, la correction n'est pas exécutée afin que l'historique enseignant reste complet.
+Chaque vérification Python exige le nom et prénom de l'étudiant. Avant d'afficher la correction, l'application enregistre dans `instance/qcm.sqlite3` le nom, l'adresse IP de la requête, l'exercice choisi, le contenu du programme, sa réussite ou son échec et la date UTC. Si l'enregistrement échoue, le résultat n'est pas affiché afin que l'historique enseignant reste complet.
 
 ## Lancement local
 
@@ -34,7 +34,7 @@ Les tests de cette page sont dans `tests/test_qcm.py` et peuvent être lancés a
 
 Définir `VERIFICATOR_TEACHER_PASSWORD` dans les variables d'environnement (Render : service Verificator, **Environment**). Choisir un mot de passe privé, différent de `VERIFICATOR_PASSWORD`, et conserver une valeur privée aléatoire pour `VERIFICATOR_SECRET_KEY`. Aucun mot de passe ne doit être ajouté au dépôt. L'espace enseignant refuse l'accès si son mot de passe est absent ou identique au mot de passe étudiant, ou si la clé de session conserve sa valeur par défaut.
 
-Depuis la correction Python ou `/qcm`, cliquer sur **Espace enseignant**. La connexion enseignant est indépendante de la connexion étudiant. `/enseignant/verifications` présente les vérifications Python du plus récent au plus ancien avec le nom, l'IP, la date, l'exercice et le programme. `/enseignant/qcm` présente les réponses au QCM. Le bouton **Actualiser** recharge les données et **Déconnexion enseignant** ferme cet accès sans déconnecter une éventuelle session étudiant.
+Depuis la correction Python ou `/qcm`, cliquer sur **Espace enseignant**. La connexion enseignant est indépendante de la connexion étudiant. `/enseignant/verifications` présente les vérifications Python du plus récent au plus ancien avec le nom, le résultat global en vert ou rouge, l'IP, la date, l'exercice et le programme. Les anciens envois enregistrés avant l'ajout du résultat sont indiqués comme non disponibles. `/enseignant/qcm` présente les réponses au QCM. Le bouton **Actualiser** recharge les données et **Déconnexion enseignant** ferme cet accès sans déconnecter une éventuelle session étudiant.
 
 Le bouton **Exporter en CSV** télécharge toutes les réponses via `/enseignant/qcm/export.csv`, soumis à la même authentification. Le CSV utilise le séparateur point-virgule et l'encodage UTF-8 avec BOM pour faciliter son ouverture dans un tableur. Les noms pouvant être interprétés comme des formules sont préfixés par une apostrophe uniquement dans l'export. Les pages enseignant et les exports ne doivent pas être mis en cache par le navigateur.
 
@@ -42,7 +42,7 @@ Les tests de consultation, d'authentification et d'export sont dans `tests/test_
 
 ## Déploiement Render / Docker
 
-Le `Dockerfile` lance Gunicorn avec un worker et quatre threads. Cette limite permet d'absorber plusieurs dépôts simultanés sans lancer trop de programmes étudiants sur une petite instance Render. Gunicorn accorde 15 secondes à une requête HTTP ; chaque programme étudiant conserve son propre délai maximal de 3 secondes.
+Le `Dockerfile` lance Gunicorn avec un worker et quatre threads. Cette limite permet d'absorber plusieurs dépôts simultanés sans lancer trop de programmes étudiants sur une petite instance Render. Gunicorn accorde 30 secondes à une requête HTTP ; chaque programme étudiant dispose par défaut de 10 secondes afin de mieux supporter les ralentissements lorsque plusieurs corrections sont lancées simultanément. Ce délai peut être ajusté avec la variable d'environnement `VERIFICATOR_EXECUTION_TIMEOUT`.
 
 En production publique, l'exécution étudiante doit être renforcée : image Docker sans réseau, utilisateur non privilégié, limites CPU/mémoire/PIDs, filesystem en lecture seule et timeout côté orchestrateur. Le processus séparé actuel est une barrière de prototype, pas une sandbox suffisante à lui seul.
 
