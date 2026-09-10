@@ -14,7 +14,7 @@ $env:FLASK_APP = "verificator:create_app"
 flask run --debug
 ```
 
-Ouvrir http://127.0.0.1:5000. Les exercices des séances 2 et 3 sont disponibles
+Ouvrir http://127.0.0.1:5000. Les exercices des séances 2, 3 et 4 sont disponibles
 dans l'ordre des TD.
 
 ## Vérifications proposées
@@ -52,8 +52,9 @@ En production publique, l'exécution étudiante doit être renforcée : image Do
 Créer un module dans `verificator/exercises/`, y déclarer un objet `Exercise` avec une fonction `test_module(module)`, puis l'ajouter à `EXERCISES` dans `verificator/exercises/__init__.py`. Les tests doivent retourner une liste de dictionnaires `{name, passed, message}`.
 
 Les exercices de la séance 3 couvrent les modules, les fichiers texte et CSV,
-puis les tableaux NumPy. Le correcteur crée lui-même les fichiers temporaires
-nécessaires : les étudiants déposent uniquement leur fichier `s3_exN.py`.
+puis les tableaux NumPy. Ceux de la séance 4 couvrent Matplotlib et le dialogue
+avec un instrument simulé. Le correcteur crée lui-même les fichiers temporaires
+nécessaires : les étudiants déposent uniquement leur fichier `sN_exN.py`.
 
 ## Limites et prochaines étapes
 
