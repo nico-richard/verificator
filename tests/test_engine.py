@@ -246,7 +246,11 @@ def test_correction_saves_failed_result(tmp_path):
 
 
 def test_session_2_exercises_define_expected_filenames():
-    assert [exercise.filename for exercise in EXERCISES.values()] == [
+    session_2 = [
+        exercise for exercise in EXERCISES.values()
+        if exercise.session == "2"
+    ]
+    assert [exercise.filename for exercise in session_2] == [
         f"s2_ex{number}.py" for number in range(1, 11)
     ]
 
@@ -255,8 +259,13 @@ def test_index_lists_the_ten_session_2_exercises():
     with client.session_transaction() as current_session:
         current_session["authenticated"] = True
     html = client.get("/").get_data(as_text=True)
-    assert len(EXERCISES) == 10
-    for exercise_id, exercise in EXERCISES.items():
+    session_2 = {
+        exercise_id: exercise
+        for exercise_id, exercise in EXERCISES.items()
+        if exercise.session == "2"
+    }
+    assert len(session_2) == 10
+    for exercise_id, exercise in session_2.items():
         assert f'value="{exercise_id}"' in html
         assert exercise.title in html
 
