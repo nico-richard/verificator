@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Progression des étudiants — Verificator</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<main class="teacher-results progress-page">
+    <nav class="page-nav" aria-label="Navigation principale">
+        <a href="{{ url_for('index') }}">Correction Python</a>
+        <a href="{{ url_for('teacher.progress') }}" aria-current="page">Progression</a>
+        <a href="{{ url_for('teacher.verifications') }}">Vérifications Python</a>
+        <a href="{{ url_for('teacher.results') }}">Réponses au QCM</a>
+    </nav>
+    <h1>Progression des étudiants</h1>
+    <div class="teacher-actions">
+        <a href="{{ url_for('teacher.progress') }}">Actualiser</a>
+        <form method="post" action="{{ url_for('teacher.logout') }}">
+            <button type="submit">Déconnexion enseignant</button>
+        </form>
+    </div>
+    {% if error %}
+    <div class="alert error" role="alert">{{ error }}</div>
+    {% elif students %}
+    <p>{{ students|length }} étudiant(s) ayant envoyé au moins un exercice.</p>
+    <p class="intro">Une coche verte indique que l’exercice a été entièrement validé au moins une fois. Les étudiants sont regroupés selon le nom exact qu’ils ont saisi.</p>
+    <div class="table-scroll progress-scroll" role="region" aria-label="Progression par étudiant et par exercice" tabindex="0">
+        <table class="progress-table">
+            <thead>
+                <tr class="session-headings">
+                    <th scope="col" rowspan="2" class="student-column">Nom et prénom</th>
+                    <th scope="col" rowspan="2" class="total-column">Total</th>
+                    {% for session_label, exercises in exercise_groups %}
+                    <th scope="colgroup" colspan="{{ exercises|length }}">{{ session_label }}</th>
+                    {% endfor %}
+                </tr>
+                <tr>
+                    {% for session_label, exercises in exercise_groups %}
+                        {% for exercise in exercises %}
+                        <th scope="col" title="{{ exercise.title }}">Ex. {{ loop.index }}</th>
+                        {% endfor %}
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for student in students %}
+                <tr>
+                    <th scope="row" class="student-column">{{ student.student_name }}</th>
+                    <td class="total-column"><strong>{{ student.validated_count }}</strong>/{{ exercise_count }}</td>
+                    {% for session_label, exercises in exercise_groups %}
+                        {% for exercise in exercises %}
+                        {% set is_validated = exercise.id in student.validated %}
+                        <td class="progress-cell {{ 'validated' if is_validated else 'not-validated' }}" title="{{ exercise.title }} : {{ 'validé' if is_validated else 'non validé' }}">
+                            <span aria-hidden="true">{{ '✓' if is_validated else '—' }}</span>
+                            <span class="visually-hidden">{{ exercise.title }} : {{ 'validé' if is_validated else 'non validé' }}</span>
+                        </td>
+                        {% endfor %}
+                    {% endfor %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p class="alert pass" role="status">Aucune vérification enregistrée pour le moment.</p>
+    {% endif %}
+</main>
+</body>
+</html>

@@ -28,7 +28,7 @@ def teacher_client(app):
     return client
 
 
-@pytest.mark.parametrize("path", ["/enseignant/qcm", "/enseignant/qcm/export.csv", "/enseignant/verifications"])
+@pytest.mark.parametrize("path", ["/enseignant/qcm", "/enseignant/qcm/export.csv", "/enseignant/verifications", "/enseignant/progression"])
 @pytest.mark.parametrize("student_logged_in", [False, True])
 def test_results_and_export_require_teacher_login(app, path, student_logged_in):
     client = app.test_client()
@@ -52,7 +52,7 @@ def test_teacher_login_rejects_invalid_password(app, password):
 def test_teacher_password_must_be_configured_and_distinct(app, password):
     app.config["TEACHER_PASSWORD"] = password
     client = app.test_client()
-    for path in ("/enseignant/connexion", "/enseignant/qcm", "/enseignant/qcm/export.csv", "/enseignant/verifications"):
+    for path in ("/enseignant/connexion", "/enseignant/qcm", "/enseignant/qcm/export.csv", "/enseignant/verifications", "/enseignant/progression"):
         assert client.get(path).status_code == 503
     assert client.post("/enseignant/connexion", data={"password": password}).status_code == 503
 
@@ -126,6 +126,44 @@ def test_teacher_can_view_python_verifications_newest_first(teacher_client, app)
     assert response.headers["Cache-Control"] == "no-store"
 
 
+def test_teacher_progress_groups_successes_by_student(teacher_client, app):
+    save_verification(
+        app.config["QCM_DATABASE"], "Camille", "192.0.2.1",
+        "s2-moyenne", "return 0", False,
+    )
+    save_verification(
+        app.config["QCM_DATABASE"], "Camille", "192.0.2.1",
+        "s2-moyenne", "return 12", True,
+    )
+    save_verification(
+        app.config["QCM_DATABASE"], "Camille", "192.0.2.1",
+        "s2-maximum", "return 0", False,
+    )
+    save_verification(
+        app.config["QCM_DATABASE"], "Alex", "192.0.2.2",
+        "s4-decoder-mesure", "return 20.5", True,
+    )
+
+    response = teacher_client.get("/enseignant/progression")
+    html = response.get_data(as_text=True)
+
+    assert response.status_code == 200
+    assert "2 étudiant(s)" in html
+    assert "Camille" in html
+    assert "Alex" in html
+    assert "1</strong>/30" in html
+    assert "Produire le premier bilan : validé" in html
+    assert "Repérer le pic de mesure : non validé" in html
+    assert response.headers["Cache-Control"] == "no-store"
+
+
+def test_empty_progress_does_not_create_database(teacher_client, app):
+    response = teacher_client.get("/enseignant/progression")
+    assert response.status_code == 200
+    assert "Aucune vérification enregistrée" in response.get_data(as_text=True)
+    assert not app.config["QCM_DATABASE"].exists()
+
+
 @pytest.mark.parametrize("name,exported_name", [
     ('Élodie; "Dupont"', 'Élodie; "Dupont"'),
     ("=1+1", "'=1+1"),
@@ -158,6 +196,7 @@ def test_teacher_logout_revokes_results_and_export_but_preserves_student_login(t
     assert teacher_client.get("/enseignant/qcm").status_code == 302
     assert teacher_client.get("/enseignant/qcm/export.csv").status_code == 302
     assert teacher_client.get("/enseignant/verifications").status_code == 302
+    assert teacher_client.get("/enseignant/progression").status_code == 302
     assert teacher_client.get("/qcm").status_code == 200
 
 
@@ -175,3 +214,10 @@ def test_verification_storage_failure_does_not_show_empty_results(teacher_client
         response = teacher_client.get("/enseignant/verifications")
     assert response.status_code == 503
     assert "indisponibles" in response.get_data(as_text=True)
+
+
+def test_progress_storage_failure_does_not_show_empty_results(teacher_client):
+    with patch("verificator.teacher.get_student_progress", side_effect=sqlite3.OperationalError("unavailable")):
+        response = teacher_client.get("/enseignant/progression")
+    assert response.status_code == 503
+    assert "indisponible" in response.get_data(as_text=True)

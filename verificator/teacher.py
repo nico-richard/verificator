@@ -5,8 +5,9 @@ import sqlite3
 
 from flask import Blueprint, Response, current_app, redirect, render_template, request, session, url_for
 
+from .exercises import EXERCISES, SESSIONS
 from .qcm import QUESTION_COUNT, get_submissions
-from .verifications import get_verifications
+from .verifications import get_student_progress, get_verifications
 
 
 teacher = Blueprint("teacher", __name__, url_prefix="/enseignant")
@@ -83,6 +84,32 @@ def verifications():
             error="Les vérifications sont temporairement indisponibles. Veuillez réessayer.",
         ), 503
     return render_template("teacher_verifications.html", submissions=submissions)
+
+
+@teacher.get("/progression")
+def progress():
+    exercise_groups = [
+        (
+            session_label,
+            [exercise for exercise in EXERCISES.values() if exercise.session == session_id],
+        )
+        for session_id, session_label in SESSIONS.items()
+    ]
+    try:
+        students = get_student_progress(
+            current_app.config["QCM_DATABASE"], EXERCISES.keys()
+        )
+    except (OSError, sqlite3.Error):
+        current_app.logger.exception("Impossible de consulter la progression")
+        return render_template(
+            "teacher_progress.html", students=[], exercise_groups=exercise_groups,
+            exercise_count=len(EXERCISES),
+            error="La progression est temporairement indisponible. Veuillez réessayer.",
+        ), 503
+    return render_template(
+        "teacher_progress.html", students=students,
+        exercise_groups=exercise_groups, exercise_count=len(EXERCISES),
+    )
 
 
 @teacher.get("/qcm/export.csv")
