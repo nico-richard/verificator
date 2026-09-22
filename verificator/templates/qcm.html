@@ -14,7 +14,7 @@
         <a href="{{ url_for('teacher.results') }}">Espace enseignant</a>
     </nav>
     <h1>QCM de début de séance</h1>
-    <p class="intro">Renseignez votre nom et prénom, puis répondez aux {{ question_count }} questions présentées en cours. Une seule réponse est possible par question.</p>
+    <p class="intro">Renseignez votre nom et prénom, puis répondez aux <span id="question-count">{{ selected_question_count }}</span> questions présentées en cours. Une seule réponse est possible par question.</p>
     {% for message in get_flashed_messages(category_filter=['qcm_success']) %}
     <div class="alert pass" role="status">{{ message }}</div>
     {% endfor %}
@@ -30,7 +30,7 @@
             <select name="questionnaire" required>
                 <option value="">Choisir le questionnaire</option>
                 {% for key, item in questionnaires.items() %}
-                <option value="{{ key }}" {% if questionnaire == key %}selected{% endif %}>{{ item.titre }}</option>
+                <option value="{{ key }}" data-question-count="{{ item['A']|length }}" {% if questionnaire == key %}selected{% endif %}>{{ item.titre }}</option>
                 {% endfor %}
             </select>
         </label>
@@ -43,7 +43,7 @@
         </label>
         <p class="intro">Toutes les questions sont obligatoires. Vérifiez vos choix avant l’envoi.</p>
         {% for number in range(1, question_count + 1) %}
-        <fieldset class="qcm-question">
+        <fieldset class="qcm-question" data-question-number="{{ number }}">
             <legend>Question {{ number }}</legend>
             <div class="qcm-choices">
                 {% for choice in choices %}
@@ -59,5 +59,26 @@
         <button type="submit">Envoyer mes réponses</button>
     </form>
 </main>
+<script>
+    const questionnaireSelect = document.querySelector('select[name="questionnaire"]');
+    const questionCount = document.querySelector('#question-count');
+    const questions = document.querySelectorAll('[data-question-number]');
+
+    function updateQuestionCount() {
+        const selectedOption = questionnaireSelect.options[questionnaireSelect.selectedIndex];
+        const count = Number(selectedOption.dataset.questionCount || {{ question_count }});
+        questionCount.textContent = count;
+        questions.forEach((question) => {
+            const visible = Number(question.dataset.questionNumber) <= count;
+            question.hidden = !visible;
+            question.querySelectorAll('input[type="radio"]').forEach((input) => {
+                input.required = visible;
+            });
+        });
+    }
+
+    questionnaireSelect.addEventListener('change', updateQuestionCount);
+    updateQuestionCount();
+</script>
 </body>
 </html>

@@ -23,7 +23,7 @@ Les tests unitaires peuvent être lancés avec `python -m pytest`. Aucun test ni
 
 ## QCM de début de séance
 
-La page `/qcm`, accessible depuis la navigation, permet aux étudiants de saisir leur nom et prénom et de répondre à 15 questions, avec un choix obligatoire parmi A, B, C et D pour chaque question. Les énoncés et les propositions sont présentés par l'enseignant en cours ; la page sert de feuille de réponses, avec notation dans l'espace enseignant selon le questionnaire et la version A/B choisis. Elle utilise la même protection par mot de passe que le correcteur Python.
+La page `/qcm`, accessible depuis la navigation, permet aux étudiants de saisir leur nom et prénom et de répondre au nombre de questions défini par le questionnaire (10 pour la séance 3, 15 pour les autres), avec un choix obligatoire parmi A, B, C et D pour chaque question. Les énoncés et les propositions sont présentés par l'enseignant en cours ; la page sert de feuille de réponses, avec notation dans l'espace enseignant selon le questionnaire et la version A/B choisis. Elle utilise la même protection par mot de passe que le correcteur Python.
 
 Après validation côté serveur, chaque envoi est enregistré dans `instance/qcm.sqlite3`, dans la table `qcm_submissions` : identifiant, nom, réponses au format JSON (numéros de questions associés aux lettres) et date UTC. Un message confirme l'enregistrement ; actualiser la page de confirmation ne renvoie pas les réponses. Plusieurs envois du même nom restent possibles et sont conservés séparément.
 

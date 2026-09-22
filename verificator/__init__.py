@@ -6,7 +6,7 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 
 from .correction.engine import CorrectionEngine
 from .exercises import EXERCISES, SESSIONS
-from .qcm import CHOICES, QUESTION_COUNT, QCM_KEYS, save_submission
+from .qcm import CHOICES, QUESTION_COUNT, QCM_KEYS, get_question_count, save_submission
 from .teacher import teacher as teacher_blueprint
 from .verifications import save_verification
 
@@ -64,8 +64,12 @@ def create_app(test_config=None):
         student_name = request.form.get("student_name", "").strip()
         questionnaire = request.form.get("questionnaire", "")
         version = request.form.get("version", "")
+        selection_valid = questionnaire in QCM_KEYS and version in ("A", "B")
+        selected_question_count = (
+            get_question_count(questionnaire, version) if selection_valid else QUESTION_COUNT
+        )
         answers = {number: request.form.get(f"question_{number}", "")
-                   for number in range(1, QUESTION_COUNT + 1)}
+                   for number in range(1, selected_question_count + 1)}
         error = None
         if request.method == "POST":
             if (len(request.form.getlist("questionnaire")) != 1 or questionnaire not in QCM_KEYS
@@ -75,7 +79,10 @@ def create_app(test_config=None):
                 error = "Veuillez renseigner votre nom et prénom (120 caractères maximum)."
             elif any(len(request.form.getlist(f"question_{number}")) != 1
                      or answer not in CHOICES for number, answer in answers.items()):
-                error = "Veuillez choisir une seule réponse par question, parmi A, B, C et D, pour les 15 questions."
+                error = (
+                    "Veuillez choisir une seule réponse par question, parmi A, B, C et D, "
+                    f"pour les {selected_question_count} questions."
+                )
             else:
                 try:
                     save_submission(app.config["QCM_DATABASE"], student_name, answers, questionnaire, version)
@@ -87,7 +94,8 @@ def create_app(test_config=None):
                     return redirect(url_for("qcm"))
         return render_template("qcm.html", question_count=QUESTION_COUNT, choices=CHOICES,
                                student_name=student_name, answers=answers, error=error,
-                               questionnaires=QCM_KEYS, questionnaire=questionnaire, version=version)
+                               questionnaires=QCM_KEYS, questionnaire=questionnaire, version=version,
+                               selected_question_count=selected_question_count)
 
     @app.post("/corriger")
     def correct():

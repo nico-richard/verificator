@@ -44,6 +44,23 @@ def test_qcm_form(client):
     assert 'href="/qcm"' in client.get("/").get_data(as_text=True)
 
 
+def test_seance3_accepts_ten_answers(client, app):
+    from verificator.qcm import QCM_KEYS, get_submissions
+
+    key = QCM_KEYS["seance3"]["A"]
+    assert len(key) == 10
+    data = {
+        "student_name": "Camille Dupont",
+        "questionnaire": "seance3",
+        "version": "A",
+        **{f"question_{number}": answer for number, answer in enumerate(key, 1)},
+    }
+
+    assert client.post("/qcm", data=data).status_code == 302
+    saved = get_submissions(app.config["QCM_DATABASE"])[0]
+    assert len(saved["answers"]) == saved["score"] == saved["total"] == 10
+
+
 @pytest.mark.parametrize("method", ["get", "post"])
 def test_qcm_requires_login(app, method):
     response = getattr(app.test_client(), method)("/qcm")

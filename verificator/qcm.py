@@ -3,9 +3,18 @@ import sqlite3
 from pathlib import Path
 
 
-QUESTION_COUNT = 15
 CHOICES = ("A", "B", "C", "D")
 QCM_KEYS = json.loads(Path(__file__).with_name("qcm_keys.json").read_text(encoding="utf-8"))
+QUESTION_COUNT = max(
+    len(questionnaire[version])
+    for questionnaire in QCM_KEYS.values()
+    for version in ("A", "B")
+)
+
+
+def get_question_count(questionnaire, version):
+    """Renvoie le nombre de réponses attendu pour une grille valide."""
+    return len(QCM_KEYS[questionnaire][version])
 
 
 def grade_answers(questionnaire, version, answers):
